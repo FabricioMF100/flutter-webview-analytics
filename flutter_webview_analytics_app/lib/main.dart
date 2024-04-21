@@ -59,6 +59,7 @@ class _WebViewExampleState extends State<WebViewExample> {
             FirebaseAnalytics.instance.logEvent(
                 name: "webview_page_loaded", parameters: {"page_url": url});
             testJSChannel();
+            injectDatalayerListenner();
           },
           onWebResourceError: (WebResourceError error) {
             FirebaseCrashlytics.instance.recordError(
@@ -107,6 +108,11 @@ class _WebViewExampleState extends State<WebViewExample> {
     return controller.runJavaScript(
       'Toaster.postMessage("Page fully loaded - User Agent: " + navigator.userAgent);',
     );
+  }
+
+  Future<void> injectDatalayerListenner() async {
+    return controller.runJavaScript(
+        'const originalPush = dataLayer.push; dataLayer.push = function(...args) {Toaster.postMessage("dataLayer Event: " + JSON.stringify(args)); originalPush(...args);};');
   }
 
   // #docregion webview_widget
