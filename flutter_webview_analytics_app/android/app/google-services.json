@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "620898189553",
+    "project_id": "fir-webview-analytics",
+    "storage_bucket": "fir-webview-analytics.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:620898189553:android:65943d631387298c982950",
+        "android_client_info": {
+          "package_name": "com.example.flutter_webview_analytics_app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyC6QDcfmiqxgML4Hc4zMz-Y4vrgH09Gq2w"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
