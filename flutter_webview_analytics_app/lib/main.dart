@@ -1,8 +1,10 @@
 import 'dart:ui';
 
+import 'package:firebase_analytics/firebase_analytics.dart';
 import 'package:firebase_crashlytics/firebase_crashlytics.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:webview_flutter/webview_flutter.dart';
 import 'firebase_options.dart';
 
 Future<void> main() async {
@@ -18,9 +20,107 @@ Future<void> main() async {
     FirebaseCrashlytics.instance.recordError(error, stack, fatal: true);
     return true;
   };
-  runApp(const MyApp());
+  //runApp(const MyApp());
+  runApp(const MaterialApp(home: WebViewExample()));
 }
 
+class WebViewExample extends StatefulWidget {
+  const WebViewExample({super.key});
+
+  @override
+  State<WebViewExample> createState() => _WebViewExampleState();
+}
+
+class _WebViewExampleState extends State<WebViewExample> {
+  late final WebViewController controller;
+
+  @override
+  void initState() {
+    super.initState();
+
+    // #docregion webview_controller
+    controller = WebViewController()
+      ..setJavaScriptMode(JavaScriptMode.unrestricted)
+      ..setBackgroundColor(const Color(0x00000000))
+      ..setNavigationDelegate(
+        NavigationDelegate(
+          onProgress: (int progress) {
+            // Update loading bar.
+          },
+          onPageStarted: (String url) {
+            FirebaseAnalytics.instance.logEvent(
+                name: "webview_page_load", parameters: {"page_url": url});
+          },
+          onUrlChange: (change) {
+            sendScreenView(change.url.toString());
+          },
+          onPageFinished: (String url) {
+            sendScreenView(url);
+            FirebaseAnalytics.instance.logEvent(
+                name: "webview_page_loaded", parameters: {"page_url": url});
+            testJSChannel();
+          },
+          onWebResourceError: (WebResourceError error) {
+            FirebaseCrashlytics.instance.recordError(
+                "WebView Error: ${error.description} URL: ${error.url}", null,
+                printDetails: true, fatal: false);
+          },
+          onNavigationRequest: (NavigationRequest request) {
+            if (request.url.startsWith('https://www.youtube.com/')) {
+              return NavigationDecision.prevent;
+            }
+            return NavigationDecision.navigate;
+          },
+        ),
+      )
+      ..addJavaScriptChannel(
+        //For toast messages on screen from web content
+        'Toaster',
+        onMessageReceived: (JavaScriptMessage message) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(message.message)),
+          );
+        },
+      )
+      ..addJavaScriptChannel(
+        //For analytics events from web content
+        'FlutterWebViewAnalytics',
+        onMessageReceived: (JavaScriptMessage message) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(message.message)),
+          );
+        },
+      )
+      ..loadRequest(Uri.parse('https://flutter.dev'));
+    // #enddocregion webview_controller
+  }
+
+  Future<void> sendScreenView(String url) async {
+    FirebaseAnalytics.instance.logEvent(name: "screen_view", parameters: {
+      "screen_class": Uri.parse(url).path,
+      "screen_name": await controller.getTitle(),
+      "page_location": url
+    });
+  }
+
+  Future<void> testJSChannel() async {
+    return controller.runJavaScript(
+      'Toaster.postMessage("Page fully loaded - User Agent: " + navigator.userAgent);',
+    );
+  }
+
+  // #docregion webview_widget
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: const Text('Flutter Webview Analytics Example')),
+      body: WebViewWidget(controller: controller),
+    );
+  }
+  // #enddocregion webview_widget
+}
+
+//Original MyApp Code
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
 
